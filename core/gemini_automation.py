@@ -236,6 +236,34 @@ class GeminiAutomation:
         from datetime import datetime
         task_start_time = datetime.now()
 
+        # 验证浏览器是否使用代理
+        if self.proxy:
+            try:
+                self._log("info", "🔍 验证浏览器代理 IP...")
+                page.get("https://api.ipify.org?format=json", timeout=10)
+                time.sleep(1)
+                # 尝试从页面提取 JSON
+                try:
+                    pre_elem = page.ele("tag:pre")
+                    if pre_elem:
+                        ip_text = pre_elem.text
+                    else:
+                        ip_text = page.html
+                except Exception:
+                    ip_text = page.html
+
+                import json
+                import re
+                # 提取 JSON 部分
+                json_match = re.search(r'\{.*?\}', ip_text)
+                if json_match:
+                    browser_ip = json.loads(json_match.group()).get("ip", "未知")
+                    self._log("info", f"✅ 浏览器当前 IP: {browser_ip}")
+                else:
+                    self._log("warning", f"⚠️ 无法解析 IP 响应: {ip_text[:100]}")
+            except Exception as e:
+                self._log("warning", f"⚠️ 浏览器 IP 验证失败: {e}")
+
         # Step 1: 导航到登录页面
         self._log("info", f"🌐 打开登录页面: {email}")
         page.get(AUTH_HOME_URL, timeout=self.timeout)
